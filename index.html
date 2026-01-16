@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>NYC Subway Times</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #222222;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent: #fccc0a;
+            --uptown: #00933c;
+            --downtown: #ee352e;
+            --border: #333333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 16px;
+            padding-bottom: 100px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .last-updated {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .selector-group {
+            margin-bottom: 20px;
+        }
+
+        .selector-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        select {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            appearance: none;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a0a0a0' stroke-width='2'%3E%3Cpolyline points='6,9 12,15 18,9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .line-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .line-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .line-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .line-btn.selected {
+            box-shadow: 0 0 0 3px var(--accent);
+        }
+
+        .line-btn[data-line="1"],
+        .line-btn[data-line="2"],
+        .line-btn[data-line="3"] { background: #ee352e; color: white; }
+
+        .line-btn[data-line="4"],
+        .line-btn[data-line="5"],
+        .line-btn[data-line="6"] { background: #00933c; color: white; }
+
+        .line-btn[data-line="7"] { background: #b933ad; color: white; }
+
+        .line-btn[data-line="A"],
+        .line-btn[data-line="C"],
+        .line-btn[data-line="E"] { background: #0039a6; color: white; }
+
+        .line-btn[data-line="B"],
+        .line-btn[data-line="D"],
+        .line-btn[data-line="F"],
+        .line-btn[data-line="M"] { background: #ff6319; color: white; }
+
+        .line-btn[data-line="G"] { background: #6cbe45; color: white; }
+
+        .line-btn[data-line="J"],
+        .line-btn[data-line="Z"] { background: #996633; color: white; }
+
+        .line-btn[data-line="L"] { background: #a7a9ac; color: black; }
+
+        .line-btn[data-line="N"],
+        .line-btn[data-line="Q"],
+        .line-btn[data-line="R"],
+        .line-btn[data-line="W"] { background: #fccc0a; color: black; }
+
+        .line-btn[data-line="S"] { background: #808183; color: white; }
+
+        .station-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .line-indicator {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .direction-section {
+            margin-bottom: 24px;
+        }
+
+        .direction-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .direction-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .direction-indicator.uptown { background: var(--uptown); }
+        .direction-indicator.downtown { background: var(--downtown); }
+
+        .direction-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .arrivals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .arrival-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .arrival-destination {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .arrival-time {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .arrival-time.arriving {
+            color: var(--uptown);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .no-trains {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(238, 53, 46, 0.1);
+            border: 1px solid rgba(238, 53, 46, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+            font-size: 0.875rem;
+        }
+
+        .error-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(252, 204, 10, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+
+        .refresh-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .refresh-btn.spinning svg {
+            animation: spin 1s linear infinite;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--uptown);
+            margin-right: 6px;
+            display: inline-block;
+        }
+
+        .status-dot.error {
+            background: var(--downtown);
+        }
+
+        @media (max-width: 380px) {
+            .line-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>NYC Subway Times</h1>
+            <div class="last-updated" id="lastUpdated">Loading...</div>
+        </header>
+
+        <div class="selector-group">
+            <label class="selector-label">Select Line</label>
+            <div class="line-buttons" id="lineButtons">
+                <button class="line-btn" data-line="1">1</button>
+                <button class="line-btn" data-line="2">2</button>
+                <button class="line-btn" data-line="3">3</button>
+                <button class="line-btn" data-line="4">4</button>
+                <button class="line-btn" data-line="5">5</button>
+                <button class="line-btn" data-line="6">6</button>
+                <button class="line-btn" data-line="7">7</button>
+                <button class="line-btn" data-line="A">A</button>
+                <button class="line-btn" data-line="C">C</button>
+                <button class="line-btn" data-line="E">E</button>
+                <button class="line-btn" data-line="B">B</button>
+                <button class="line-btn" data-line="D">D</button>
+                <button class="line-btn" data-line="F">F</button>
+                <button class="line-btn" data-line="M">M</button>
+                <button class="line-btn" data-line="G">G</button>
+                <button class="line-btn" data-line="J">J</button>
+                <button class="line-btn" data-line="Z">Z</button>
+                <button class="line-btn selected" data-line="L">L</button>
+                <button class="line-btn" data-line="N">N</button>
+                <button class="line-btn" data-line="Q">Q</button>
+                <button class="line-btn" data-line="R">R</button>
+                <button class="line-btn" data-line="W">W</button>
+                <button class="line-btn" data-line="S">S</button>
+            </div>
+        </div>
+
+        <div class="selector-group">
+            <label class="selector-label">Select Station</label>
+            <select id="stationSelect">
+                <option value="">Loading stations...</option>
+            </select>
+        </div>
+
+        <div id="arrivalsContainer">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <div>Loading arrival times...</div>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" id="refreshBtn" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+    </button>
+
+    <div class="status-bar">
+        <div>
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connecting...</span>
+        </div>
+        <div id="nextRefresh">Next refresh: --</div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
